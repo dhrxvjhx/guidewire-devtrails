@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ClaimShield — Anti-Spoofing Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #060a10;
+    --surface: #0d1420;
+    --surface2: #111c2e;
+    --border: #1e2f45;
+    --accent: #00e5ff;
+    --accent2: #0066ff;
+    --green: #00e676;
+    --amber: #ffb300;
+    --red: #ff1744;
+    --text: #e8f0fe;
+    --muted: #5a7a9a;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* SCANLINE */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -100%;
+    left: 0;
+    right: 0;
+    height: 200%;
+    background: linear-gradient(transparent 50%, rgba(0,229,255,0.015) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 0;
+    animation: scanline 8s linear infinite;
+  }
+
+  @keyframes scanline {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(50%); }
+  }
+
+  .page { position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(6,10,16,0.8);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--text); }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 1px;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-green 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* HERO */
+  .hero {
+    padding: 60px 40px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hero-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero p {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+
+  /* DEMO WRAPPER */
+  .demo-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px 80px;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* CLAIM FORM */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .panel-header-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .panel-body { padding: 24px; }
+
+  .field { margin-bottom: 20px; }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  select, input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+
+  select:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+
+  .toggle-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .toggle {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  .toggle.active {
+    background: rgba(0,229,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .toggle.active-bad {
+    background: rgba(255,23,68,0.1);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .scenario-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .scenario-btn {
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    line-height: 1.4;
+  }
+
+  .scenario-btn:hover { border-color: var(--accent2); }
+
+  .scenario-btn.selected-green { border-color: var(--green); background: rgba(0,230,118,0.06); }
+  .scenario-btn.selected-amber { border-color: var(--amber); background: rgba(255,179,0,0.06); }
+  .scenario-btn.selected-red { border-color: var(--red); background: rgba(255,23,68,0.06); }
+
+  .scenario-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent2);
+    color: white;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+
+  .submit-btn:hover { background: var(--accent); color: var(--bg); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ANALYSIS PANEL */
+  .analysis-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* CLS SCORE */
+  .cls-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cls-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.8s ease;
+  }
+
+  .cls-card.loaded::before { transform: scaleX(1); }
+
+  .cls-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .cls-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .cls-score {
+    font-family: var(--mono);
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    transition: color 0.5s;
+  }
+
+  .cls-score.green { color: var(--green); }
+  .cls-score.amber { color: var(--amber); }
+  .cls-score.red { color: var(--red); }
+  .cls-score.idle { color: var(--border); }
+
+  .verdict-badge {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .verdict-badge.show { opacity: 1; }
+  .verdict-badge.green { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .verdict-badge.amber { background: rgba(255,179,0,0.15); color: var(--amber); border: 1px solid rgba(255,179,0,0.3); }
+  .verdict-badge.red { background: rgba(255,23,68,0.15); color: var(--red); border: 1px solid rgba(255,23,68,0.3); }
+
+  /* SIGNAL BARS */
+  .signals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .signal-item {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    transition: border-color 0.4s;
+  }
+
+  .signal-item.pass { border-color: rgba(0,230,118,0.3); }
+  .signal-item.warn { border-color: rgba(255,179,0,0.3); }
+  .signal-item.fail { border-color: rgba(255,23,68,0.3); }
+
+  .signal-name {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .signal-bar-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .signal-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 1s ease, background-color 0.4s;
+  }
+
+  .signal-bar-fill.pass { background: var(--green); }
+  .signal-bar-fill.warn { background: var(--amber); }
+  .signal-bar-fill.fail { background: var(--red); }
+
+  .signal-val {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  /* POPULATION MONITOR */
+  .pop-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .pop-body { padding: 20px; }
+
+  .pop-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .pop-stat-row:last-child { border-bottom: none; }
+
+  .pop-stat-label { color: var(--muted); }
+
+  .pop-stat-val {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    transition: color 0.4s;
+  }
+
+  .pop-stat-val.ok { color: var(--green); }
+  .pop-stat-val.warn { color: var(--amber); }
+  .pop-stat-val.alert { color: var(--red); }
+
+  /* VERDICT CARD */
+  .verdict-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+
+  .verdict-card.show { opacity: 1; transform: translateY(0); }
+  .verdict-card.green { border-color: rgba(0,230,118,0.4); }
+  .verdict-card.amber { border-color: rgba(255,179,0,0.4); }
+  .verdict-card.red { border-color: rgba(255,23,68,0.4); }
+
+  .verdict-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .verdict-title.green { color: var(--green); }
+  .verdict-title.amber { color: var(--amber); }
+  .verdict-title.red { color: var(--red); }
+
+  .verdict-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .verdict-action {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+  }
+
+  .verdict-action.green { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .verdict-action.amber { background: rgba(255,179,0,0.15); color: var(--amber); border: 1px solid rgba(255,179,0,0.3); }
+  .verdict-action.red { background: rgba(255,23,68,0.15); color: var(--red); border: 1px solid rgba(255,23,68,0.3); }
+
+  /* LOG FEED */
+  .log-feed {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .log-body {
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.8;
+    height: 140px;
+    overflow-y: auto;
+    color: var(--muted);
+  }
+
+  .log-entry { display: flex; gap: 10px; }
+  .log-time { color: var(--accent); min-width: 60px; }
+  .log-msg.ok { color: var(--green); }
+  .log-msg.warn { color: var(--amber); }
+  .log-msg.err { color: var(--red); }
+  .log-msg.info { color: var(--text); }
+
+  /* PROCESSING OVERLAY */
+  .processing {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: rgba(0,229,255,0.05);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .processing.show { display: flex; }
+
+  .spin {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* IDLE STATE */
+  .idle-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    gap: 12px;
+  }
+
+  .idle-icon {
+    font-size: 32px;
+    opacity: 0.3;
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    header { padding: 16px 20px; }
+    .hero { padding: 40px 20px 24px; }
+    .demo-wrapper { grid-template-columns: 1fr; padding: 0 20px 60px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="logo">Claim<span>Shield</span></div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    LIVE DEMO — DEVTrails 2026
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-tag">// Anti-Spoofing Infrastructure</div>
+  <h1>We don't trust GPS.<br><em>We never did.</em></h1>
+  <p>Select a scenario below to see how our Contextual Legitimacy Score (CLS) engine differentiates a genuinely stranded delivery worker from a bad actor in real time.</p>
+</div>
+
+<div class="demo-wrapper">
+
+  <!-- LEFT: CLAIM INPUT -->
+  <div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-header-dot"></div>
+        File a Claim — Simulation
+      </div>
+      <div class="panel-body">
+
+        <div class="field">
+          <label>Scenario</label>
+          <div class="scenario-selector">
+            <button class="scenario-btn" id="s1" onclick="selectScenario('green')">
+              <span class="scenario-tag" style="color:var(--green)">✓ GENUINE WORKER</span>
+              Active delivery session, trajectory into storm zone, sensors nominal
+            </button>
+            <button class="scenario-btn" id="s2" onclick="selectScenario('amber')">
+              <span class="scenario-tag" style="color:var(--amber)">⚠ AMBIGUOUS — NETWORK DROP</span>
+              Real worker, but GPS drifted due to storm interference, no active order
+            </button>
+            <button class="scenario-btn" id="s3" onclick="selectScenario('red')">
+              <span class="scenario-tag" style="color:var(--red)">✗ SYNDICATE MEMBER</span>
+              Home Wi-Fi match, no delivery history, 47 simultaneous claims from same pin
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Claimed GPS Coordinates</label>
+          <input type="text" id="gps-input" value="—" readonly/>
+        </div>
+
+        <div class="field">
+          <label>Device Signals</label>
+          <div class="toggle-group" id="signals-display">
+            <span class="toggle" id="sig-accel">Accelerometer</span>
+            <span class="toggle" id="sig-cell">Cell Tower</span>
+            <span class="toggle" id="sig-baro">Barometric</span>
+            <span class="toggle" id="sig-order">Active Order</span>
+            <span class="toggle" id="sig-hist">Route History</span>
+          </div>
+        </div>
+
+        <button class="submit-btn" id="submit-btn" onclick="runAnalysis()" disabled>
+          → Submit Claim
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: ANALYSIS -->
+  <div class="analysis-panel">
+
+    <!-- PROCESSING -->
+    <div class="processing" id="processing">
+      <div class="spin"></div>
+      <span id="processing-msg">Initialising CLS engine...</span>
+    </div>
+
+    <!-- CLS SCORE -->
+    <div class="cls-card" id="cls-card">
+      <div id="idle-hint" class="idle-state">
+        <div class="idle-icon">◎</div>
+        Select a scenario and submit a claim to run analysis
+      </div>
+      <div id="cls-content" style="display:none">
+        <div class="cls-top">
+          <div>
+            <div class="cls-label">Contextual Legitimacy Score</div>
+            <div class="cls-score idle" id="cls-score">—</div>
+          </div>
+          <div class="verdict-badge" id="verdict-badge"></div>
+        </div>
+        <div class="signals-grid" id="signals-grid"></div>
+      </div>
+    </div>
+
+    <!-- POPULATION MONITOR -->
+    <div class="pop-card" id="pop-card" style="display:none">
+      <div class="panel-header">
+        <div class="panel-header-dot"></div>
+        Population-Level Monitor
+      </div>
+      <div class="pop-body" id="pop-body"></div>
+    </div>
+
+    <!-- VERDICT -->
+    <div class="verdict-card" id="verdict-card">
+      <div id="verdict-inner"></div>
+    </div>
+
+    <!-- LOG FEED -->
+    <div class="log-feed" id="log-feed" style="display:none">
+      <div class="panel-header">
+        <div class="panel-header-dot"></div>
+        System Log
+      </div>
+      <div class="log-body" id="log-body"></div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+<script>
+const scenarios = {
+  green: {
+    gps: '19.0760° N, 72.8777° E',
+    signals: {
+      'Accelerometer': { val: 94, status: 'pass', label: 'Storm micro-movement detected' },
+      'Cell Tower': { val: 91, status: 'pass', label: 'GPS corroborated' },
+      'Barometric': { val: 88, status: 'pass', label: 'Pressure drop matches zone' },
+      'Active Order': { val: 100, status: 'pass', label: 'Order in-transit since 14:22' },
+      'Route History': { val: 96, status: 'pass', label: 'Zone matches history' },
+      'Weather API': { val: 100, status: 'pass', label: 'Red-alert confirmed at coords' },
+    },
+    pop: {
+      'Claims from this pin (10 min)': { val: '1', status: 'ok' },
+      'Temporal cluster score': { val: 'Low', status: 'ok' },
+      'Device fingerprint match': { val: 'Unique', status: 'ok' },
+      'Network graph anomaly': { val: 'None', status: 'ok' },
+      'Payout velocity': { val: 'Normal', status: 'ok' },
+    },
+    cls: 94,
+    tier: 'green',
+    verdict: '🟢 Auto-Approved',
+    verdictDesc: 'All six signals corroborate the claim. Active delivery session confirmed prior to the weather event. Route trajectory into the storm zone matches historical mobility graph. Payout initiated.',
+    action: '✓ Payout Initiated — ETA 60s',
+    logs: [
+      ['info', 'Claim received — Worker ID #DL-4821'],
+      ['ok', 'Weather API: Red-alert confirmed at 19.07° N, 72.88° E'],
+      ['ok', 'Active order #ORD-9934 verified — in-transit since 14:22'],
+      ['ok', 'Cell tower triangulation: GPS corroborated ✓'],
+      ['ok', 'Accelerometer: storm micro-movement pattern matched'],
+      ['ok', 'Route history: trajectory into zone confirmed'],
+      ['ok', 'Population monitor: no clustering anomaly'],
+      ['ok', 'CLS Score: 94 / 100 — Tier GREEN'],
+      ['ok', '→ Auto-approved. Payout processing.'],
+    ]
+  },
+  amber: {
+    gps: '19.0812° N, 72.8901° E',
+    signals: {
+      'Accelerometer': { val: 72, status: 'pass', label: 'Some movement detected' },
+      'Cell Tower': { val: 45, status: 'warn', label: 'GPS drift — partial mismatch' },
+      'Barometric': { val: 70, status: 'pass', label: 'Pressure consistent' },
+      'Active Order': { val: 10, status: 'fail', label: 'No active order found' },
+      'Route History': { val: 60, status: 'warn', label: 'Adjacent zone, not exact' },
+      'Weather API': { val: 100, status: 'pass', label: 'Red-alert confirmed' },
+    },
+    pop: {
+      'Claims from this pin (10 min)': { val: '3', status: 'ok' },
+      'Temporal cluster score': { val: 'Low', status: 'ok' },
+      'Device fingerprint match': { val: 'Unique', status: 'ok' },
+      'Network graph anomaly': { val: 'None', status: 'ok' },
+      'Payout velocity': { val: 'Normal', status: 'ok' },
+    },
+    cls: 58,
+    tier: 'amber',
+    verdict: '🟡 Soft Verification Requested',
+    verdictDesc: 'GPS drifted due to storm network interference — cell tower only partially corroborates location. No active order prior to the event. Population monitor shows no coordinated fraud. Worker is likely genuine but needs light verification.',
+    action: '📸 Verification Prompt Sent',
+    logs: [
+      ['info', 'Claim received — Worker ID #DL-7103'],
+      ['ok', 'Weather API: Red-alert confirmed at coordinates'],
+      ['warn', 'No active delivery order found prior to event'],
+      ['warn', 'Cell tower triangulation: partial GPS mismatch (storm interference likely)'],
+      ['ok', 'Accelerometer: movement consistent with outdoor exposure'],
+      ['ok', 'Population monitor: no clustering anomaly'],
+      ['warn', 'CLS Score: 58 / 100 — Tier AMBER'],
+      ['warn', '→ Payout HELD. Soft verification prompt dispatched.'],
+      ['info', 'Worker has 30-min window to confirm via video/selfie.'],
+    ]
+  },
+  red: {
+    gps: '19.0760° N, 72.8777° E',
+    signals: {
+      'Accelerometer': { val: 12, status: 'fail', label: 'Domestic stillness pattern' },
+      'Cell Tower': { val: 8, status: 'fail', label: 'Home Wi-Fi tower mismatch' },
+      'Barometric': { val: 20, status: 'fail', label: 'Indoor pressure (stable AC)' },
+      'Active Order': { val: 0, status: 'fail', label: 'No order — off-shift' },
+      'Route History': { val: 5, status: 'fail', label: 'Zone never visited' },
+      'Weather API': { val: 100, status: 'pass', label: 'Red-alert confirmed at coords' },
+    },
+    pop: {
+      'Claims from this pin (10 min)': { val: '47 ⚠', status: 'alert' },
+      'Temporal cluster score': { val: 'CRITICAL', status: 'alert' },
+      'Device fingerprint match': { val: '12 shared IPs', status: 'alert' },
+      'Network graph anomaly': { val: 'Syndicate flagged', status: 'alert' },
+      'Payout velocity': { val: 'CIRCUIT BREAKER', status: 'alert' },
+    },
+    cls: 7,
+    tier: 'red',
+    verdict: '🔴 Claim Frozen — Syndicate Detected',
+    verdictDesc: 'All individual device signals point to a domestic environment. Population monitor detected 47 simultaneous claims from an identical GPS pin within 10 minutes — a statistically impossible natural event. 12 devices share the same home IP. Payout velocity circuit breaker triggered. All claims in this cluster quarantined for human review.',
+    action: '⚑ Flagged — Human Review + Appeal Path',
+    logs: [
+      ['info', 'Claim received — Worker ID #DL-0291'],
+      ['err', 'POPULATION ALERT: 47 claims from same pin in < 10 min'],
+      ['err', 'Temporal pattern: spike consistent with Telegram coordination'],
+      ['err', '12 devices sharing home IP — device fingerprint cluster'],
+      ['err', 'Accelerometer: domestic stillness (home environment)'],
+      ['err', 'Cell tower: home Wi-Fi tower — does NOT match claimed coords'],
+      ['err', 'No delivery activity — worker was off-shift'],
+      ['err', 'CLS Score: 7 / 100 — Tier RED'],
+      ['err', '→ FROZEN. Payout velocity circuit breaker ACTIVATED.'],
+      ['err', '→ All 47 claims quarantined. Human review escalated.'],
+      ['info', 'Appeal path open. Workers notified transparently.'],
+    ]
+  }
+};
+
+let selectedScenario = null;
+let isProcessing = false;
+
+function selectScenario(type) {
+  selectedScenario = type;
+  const s = scenarios[type];
+
+  document.getElementById('s1').className = 'scenario-btn' + (type === 'green' ? ' selected-green' : '');
+  document.getElementById('s2').className = 'scenario-btn' + (type === 'amber' ? ' selected-amber' : '');
+  document.getElementById('s3').className = 'scenario-btn' + (type === 'red' ? ' selected-red' : '');
+
+  document.getElementById('gps-input').value = s.gps;
+
+  const sigMap = {
+    'Accelerometer': 'sig-accel',
+    'Cell Tower': 'sig-cell',
+    'Barometric': 'sig-baro',
+    'Active Order': 'sig-order',
+    'Route History': 'sig-hist',
+  };
+  Object.entries(sigMap).forEach(([name, id]) => {
+    const el = document.getElementById(id);
+    const sig = s.signals[name];
+    el.className = 'toggle ' + (sig.status === 'pass' ? 'active' : sig.status === 'warn' ? '' : 'active-bad');
+  });
+
+  document.getElementById('submit-btn').disabled = false;
+
+  // Reset analysis
+  resetAnalysis();
+}
+
+function resetAnalysis() {
+  document.getElementById('cls-content').style.display = 'none';
+  document.getElementById('idle-hint').style.display = 'flex';
+  document.getElementById('pop-card').style.display = 'none';
+  document.getElementById('verdict-card').className = 'verdict-card';
+  document.getElementById('log-feed').style.display = 'none';
+  document.getElementById('cls-card').classList.remove('loaded');
+}
+
+function runAnalysis() {
+  if (!selectedScenario || isProcessing) return;
+  isProcessing = true;
+
+  const s = scenarios[selectedScenario];
+  const processing = document.getElementById('processing');
+  const steps = [
+    'Querying Weather API...',
+    'Running device sensor fusion...',
+    'Checking behavioural continuity...',
+    'Scanning population monitor...',
+    'Computing Contextual Legitimacy Score...',
+    'Applying three-tier response logic...',
+  ];
+
+  processing.classList.add('show');
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('idle-hint').style.display = 'none';
+
+  let step = 0;
+  const interval = setInterval(() => {
+    if (step < steps.length) {
+      document.getElementById('processing-msg').textContent = steps[step];
+      step++;
+    } else {
+      clearInterval(interval);
+      processing.classList.remove('show');
+      showResults(s);
+      isProcessing = false;
+      document.getElementById('submit-btn').disabled = false;
+    }
+  }, 500);
+}
+
+function showResults(s) {
+  // CLS Card
+  document.getElementById('cls-content').style.display = 'block';
+  document.getElementById('cls-card').classList.add('loaded');
+
+  const scoreEl = document.getElementById('cls-score');
+  const badgeEl = document.getElementById('verdict-badge');
+
+  // Animate score
+  let current = 0;
+  const target = s.cls;
+  const scoreInterval = setInterval(() => {
+    current += Math.ceil((target - current) / 6) || 1;
+    if (current >= target) { current = target; clearInterval(scoreInterval); }
+    scoreEl.textContent = current;
+    scoreEl.className = 'cls-score ' + s.tier;
+  }, 60);
+
+  badgeEl.className = 'verdict-badge show ' + s.tier;
+  badgeEl.textContent = s.tier === 'green' ? 'TIER GREEN' : s.tier === 'amber' ? 'TIER AMBER' : 'TIER RED';
+
+  // Signals grid
+  const grid = document.getElementById('signals-grid');
+  grid.innerHTML = '';
+  Object.entries(s.signals).forEach(([name, data], i) => {
+    const item = document.createElement('div');
+    item.className = 'signal-item';
+    item.innerHTML = `
+      <div class="signal-name">${name}</div>
+      <div class="signal-bar-track">
+        <div class="signal-bar-fill ${data.status}" id="bar-${i}" style="width:0%"></div>
+      </div>
+      <div class="signal-val">${data.label}</div>
+    `;
+    grid.appendChild(item);
+    setTimeout(() => {
+      item.className = 'signal-item ' + data.status;
+      document.getElementById('bar-' + i).style.width = data.val + '%';
+    }, 200 + i * 120);
+  });
+
+  // Population Monitor
+  setTimeout(() => {
+    const popCard = document.getElementById('pop-card');
+    popCard.style.display = 'block';
+    const popBody = document.getElementById('pop-body');
+    popBody.innerHTML = '';
+    Object.entries(s.pop).forEach(([label, data]) => {
+      const row = document.createElement('div');
+      row.className = 'pop-stat-row';
+      row.innerHTML = `<span class="pop-stat-label">${label}</span><span class="pop-stat-val ${data.status}">${data.val}</span>`;
+      popBody.appendChild(row);
+    });
+  }, 900);
+
+  // Verdict Card
+  setTimeout(() => {
+    const vc = document.getElementById('verdict-card');
+    vc.className = 'verdict-card show ' + s.tier;
+    document.getElementById('verdict-inner').innerHTML = `
+      <div class="verdict-title ${s.tier}">${s.verdict}</div>
+      <div class="verdict-desc">${s.verdictDesc}</div>
+      <button class="verdict-action ${s.tier}">${s.action}</button>
+    `;
+  }, 1400);
+
+  // Log Feed
+  setTimeout(() => {
+    const logFeed = document.getElementById('log-feed');
+    logFeed.style.display = 'block';
+    const logBody = document.getElementById('log-body');
+    logBody.innerHTML = '';
+
+    const now = new Date();
+    s.logs.forEach((entry, i) => {
+      setTimeout(() => {
+        const t = new Date(now.getTime() + i * 300);
+        const time = t.toTimeString().slice(0, 8);
+        const line = document.createElement('div');
+        line.className = 'log-entry';
+        line.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${entry[0]}">${entry[1]}</span>`;
+        logBody.appendChild(line);
+        logBody.scrollTop = logBody.scrollHeight;
+      }, i * 200);
+    });
+  }, 1800);
+}
+</script>
+</body>
+</html>
