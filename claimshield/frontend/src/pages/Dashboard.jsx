@@ -271,6 +271,20 @@ export default function Dashboard() {
               <div className="text-xs text-gray-500 mt-1">Auto-credited from payouts</div>
             </div>
 
+            <button
+              onClick={async () => {
+                try {
+                  await walletApi.topup(1000);
+                  window.location.reload();
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
+              className="w-full py-2 rounded-lg text-xs font-mono font-bold mb-2
+             bg-green/10 text-green border border-green/25
+             hover:bg-green/20 transition-colors">
+              + Add ₹1000
+            </button>
             <Link to="/wallet" className="btn-ghost text-center block text-xs">
               View full history →
             </Link>
