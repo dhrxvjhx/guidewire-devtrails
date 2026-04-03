@@ -18,10 +18,11 @@ export default function DisruptionAlert() {
     const [seen, setSeen] = useState(new Set());
 
     useEffect(() => {
-        console.log('[ALERT] Listener mounting for', currentUser?.uid);
         if (!currentUser || !db) return;
 
-        // Listen for new GREEN payouts in real time
+        // Record the time the listener starts — only show payouts after this moment
+        const listenerStartTime = new Date().toISOString();
+
         const q = query(
             collection(db, 'payouts'),
             where('userId', '==', currentUser.uid),
@@ -36,7 +37,8 @@ export default function DisruptionAlert() {
             const doc = snapshot.docs[0];
             const payout = { id: doc.id, ...doc.data() };
 
-            // Only show if we haven't shown this payout before
+            // Only show if payout was created AFTER this session started
+            if (payout.createdAt < listenerStartTime) return;
             if (seen.has(payout.id)) return;
 
             const meta = TRIGGER_MESSAGES[payout.triggerType] || { icon: '⚡', event: 'Disruption detected' };
@@ -45,7 +47,6 @@ export default function DisruptionAlert() {
             setVisible(true);
             setSeen(prev => new Set([...prev, payout.id]));
 
-            // Auto-dismiss after 8 seconds
             setTimeout(() => setVisible(false), 8000);
         });
 
