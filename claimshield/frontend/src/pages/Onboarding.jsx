@@ -18,32 +18,32 @@ import { authApi, premiumApi } from '../api';
 
 // ── Static data ──────────────────────────────────────────────────────────────
 const PLATFORMS = [
-  { value: 'swiggy',   label: 'Swiggy',       icon: '🟠' },
-  { value: 'zomato',   label: 'Zomato',        icon: '🔴' },
-  { value: 'zepto',    label: 'Zepto',         icon: '🟣' },
-  { value: 'blinkit',  label: 'Blinkit',       icon: '🟡' },
-  { value: 'amazon',   label: 'Amazon Flex',   icon: '📦' },
-  { value: 'dunzo',    label: 'Dunzo',         icon: '🔵' },
+  { value: 'swiggy', label: 'Swiggy', icon: '🟠' },
+  { value: 'zomato', label: 'Zomato', icon: '🔴' },
+  { value: 'zepto', label: 'Zepto', icon: '🟣' },
+  { value: 'blinkit', label: 'Blinkit', icon: '🟡' },
+  { value: 'amazon', label: 'Amazon Flex', icon: '📦' },
+  { value: 'dunzo', label: 'Dunzo', icon: '🔵' },
 ];
 
 const CITIES = [
-  { value: 'chennai',   label: 'Chennai',   state: 'Tamil Nadu'  },
-  { value: 'mumbai',    label: 'Mumbai',    state: 'Maharashtra'  },
-  { value: 'hyderabad', label: 'Hyderabad', state: 'Telangana'    },
-  { value: 'bengaluru', label: 'Bengaluru', state: 'Karnataka'    },
+  { value: 'chennai', label: 'Chennai', state: 'Tamil Nadu' },
+  { value: 'mumbai', label: 'Mumbai', state: 'Maharashtra' },
+  { value: 'hyderabad', label: 'Hyderabad', state: 'Telangana' },
+  { value: 'bengaluru', label: 'Bengaluru', state: 'Karnataka' },
 ];
 
 const ZONES = {
-  chennai:   [{ value: 'north', label: 'North Chennai (flood-prone)' }, { value: 'central', label: 'Central Chennai' }, { value: 'south', label: 'South Chennai' }],
-  mumbai:    [{ value: 'west',  label: 'Western Suburbs (high risk)' }, { value: 'central', label: 'Central Mumbai'  }, { value: 'east',  label: 'Eastern Suburbs'  }],
-  hyderabad: [{ value: 'north', label: 'North Hyderabad'             }, { value: 'south',   label: 'South Hyderabad' }],
-  bengaluru: [{ value: 'north', label: 'North Bengaluru'             }, { value: 'south',   label: 'South Bengaluru' }],
+  chennai: [{ value: 'north', label: 'North Chennai (flood-prone)' }, { value: 'central', label: 'Central Chennai' }, { value: 'south', label: 'South Chennai' }],
+  mumbai: [{ value: 'west', label: 'Western Suburbs (high risk)' }, { value: 'central', label: 'Central Mumbai' }, { value: 'east', label: 'Eastern Suburbs' }],
+  hyderabad: [{ value: 'north', label: 'North Hyderabad' }, { value: 'south', label: 'South Hyderabad' }],
+  bengaluru: [{ value: 'north', label: 'North Bengaluru' }, { value: 'south', label: 'South Bengaluru' }],
 };
 
 const VEHICLES = [
-  { value: 'bike',   label: 'Motorcycle' },
-  { value: 'scooter', label: 'Scooter'  },
-  { value: 'cycle',  label: 'Bicycle'   },
+  { value: 'bike', label: 'Motorcycle' },
+  { value: 'scooter', label: 'Scooter' },
+  { value: 'cycle', label: 'Bicycle' },
 ];
 
 const PLANS = [
@@ -90,8 +90,8 @@ function StepBar({ current, total }) {
             ${i < current
               ? 'bg-green text-bg'
               : i === current
-              ? 'bg-accent2 text-white ring-2 ring-accent2/30'
-              : 'bg-surface2 text-gray-500 border border-border'}`}>
+                ? 'bg-accent2 text-white ring-2 ring-accent2/30'
+                : 'bg-surface2 text-gray-500 border border-border'}`}>
             {i < current ? '✓' : i + 1}
           </div>
           {i < total - 1 && (
@@ -110,9 +110,9 @@ function StepBar({ current, total }) {
 // ── Risk band badge ──────────────────────────────────────────────────────────
 function RiskBand({ band, score }) {
   const styles = {
-    LOW:    'badge-green',
+    LOW: 'badge-green',
     MEDIUM: 'badge-amber',
-    HIGH:   'badge-red',
+    HIGH: 'badge-red',
   };
   return (
     <span className={`badge ${styles[band] || 'badge-blue'}`}>
@@ -175,7 +175,7 @@ export default function Onboarding() {
       setQuoteLoading(false);
     }
   }, [form.city, form.zone, form.platform, form.avgDailyEarnings,
-      form.hoursPerDay, form.experienceMonths, form.preferredPlan]);
+  form.hoursPerDay, form.experienceMonths, form.preferredPlan]);
 
   useEffect(() => {
     if (step >= 2) fetchQuote();
@@ -190,8 +190,8 @@ export default function Onboarding() {
   function validateStep(s) {
     if (s === 0) {
       if (!form.platform) return 'Select your delivery platform';
-      if (!form.city)     return 'Select your city';
-      if (!form.zone)     return 'Select your zone / area';
+      if (!form.city) return 'Select your city';
+      if (!form.zone) return 'Select your zone / area';
     }
     if (s === 1) {
       if (!form.avgDailyEarnings || form.avgDailyEarnings <= 0)
@@ -233,7 +233,7 @@ export default function Onboarding() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 relative z-10">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 relative z-10">
       <div className="w-full max-w-2xl">
 
         {/* Header */}
@@ -261,7 +261,7 @@ export default function Onboarding() {
             {/* Platform selector */}
             <div className="mb-5">
               <label className="cs-label">Delivery Platform</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {PLATFORMS.map(p => (
                   <button key={p.value} type="button"
                     onClick={() => set('platform', p.value)}
@@ -279,7 +279,7 @@ export default function Onboarding() {
             {/* City */}
             <div className="mb-5">
               <label className="cs-label">City</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {CITIES.map(c => (
                   <button key={c.value} type="button"
                     onClick={() => { set('city', c.value); set('zone', ''); }}
@@ -530,8 +530,8 @@ export default function Onboarding() {
                           ₹{quoteLoading || !quote
                             ? plan.basePremium
                             : form.preferredPlan === plan.id
-                            ? quote.adjustedPremium
-                            : plan.basePremium}
+                              ? quote.adjustedPremium
+                              : plan.basePremium}
                         </div>
                         <div className="text-xs text-gray-500">/ week</div>
                       </div>

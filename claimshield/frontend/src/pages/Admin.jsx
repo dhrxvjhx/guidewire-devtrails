@@ -1,6 +1,3 @@
-// Admin dashboard — insurer view.
-// Shows platform-wide stats, loss ratios, payout queue, fraud log.
-
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 
@@ -30,6 +27,46 @@ function LossRatioBar({ city, ratio }) {
     );
 }
 
+function PredictiveRisk() {
+    const forecasts = [
+        { city: 'Chennai', risk: 'HIGH', rain: '72mm expected', temp: '30°C', payoutEst: '₹2,800', color: 'text-danger', bg: 'bg-danger/8', border: 'border-danger/20' },
+        { city: 'Mumbai', risk: 'MEDIUM', rain: '38mm expected', temp: '31°C', payoutEst: '₹800', color: 'text-amber', bg: 'bg-amber/8', border: 'border-amber/20' },
+        { city: 'Hyderabad', risk: 'LOW', rain: '2mm expected', temp: '36°C', payoutEst: '₹0', color: 'text-green', bg: 'bg-green/8', border: 'border-green/20' },
+        { city: 'Bengaluru', risk: 'LOW', rain: '5mm expected', temp: '28°C', payoutEst: '₹0', color: 'text-green', bg: 'bg-green/8', border: 'border-green/20' },
+    ];
+
+    return (
+        <div className="cs-card">
+            <div className="font-mono text-xs text-gray-500 tracking-widest uppercase mb-1">
+                Predictive Risk — Next 48h
+            </div>
+            <div className="text-xs text-gray-600 mb-4">
+                Weather forecast · Est. payout exposure
+            </div>
+            <div className="space-y-2">
+                {forecasts.map(f => (
+                    <div key={f.city} className={`rounded-xl px-3 py-2.5 border ${f.bg} ${f.border}`}>
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-semibold">{f.city}</span>
+                            <span className={`font-mono text-xs font-bold ${f.color}`}>{f.risk}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500">
+                            <span>{f.rain} · {f.temp}</span>
+                            <span className={`font-mono ${f.payoutEst !== '₹0' ? 'text-amber' : 'text-gray-600'}`}>
+                                {f.payoutEst}
+                            </span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <div className="mt-3 pt-3 border-t border-border text-xs text-gray-600 font-mono">
+                Total est. exposure next 48h:{' '}
+                <span className="text-amber font-bold">₹3,600</span>
+            </div>
+        </div>
+    );
+}
+
 const TIER_STYLE = {
     GREEN: 'badge-green',
     AMBER: 'badge-amber',
@@ -40,7 +77,6 @@ export default function Admin() {
     const [stats, setStats] = useState(null);
     const [payouts, setPayouts] = useState([]);
     const [triggers, setTriggers] = useState([]);
-    const [fraud, setFraud] = useState([]);
     const [loading, setLoading] = useState(true);
     const [simCity, setSimCity] = useState('chennai');
     const [simType, setSimType] = useState('rainfall');
@@ -54,7 +90,6 @@ export default function Admin() {
                 api.get('/payouts/all?limit=10'),
                 api.get('/admin/triggers/recent'),
             ]);
-
             if (statsRes.status === 'fulfilled') setStats(statsRes.value);
             if (payoutsRes.status === 'fulfilled') setPayouts(payoutsRes.value.payouts || []);
             if (triggersRes.status === 'fulfilled') setTriggers(triggersRes.value.triggers || []);
@@ -69,11 +104,9 @@ export default function Admin() {
         setSimming(true);
         setSimResult(null);
         try {
-            const result = await api.post('/admin/simulate-trigger', {
-                city: simCity, triggerType: simType,
-            });
+            const result = await api.post('/admin/simulate-trigger', { city: simCity, triggerType: simType });
             setSimResult({ ok: true, data: result });
-            await load(); // refresh stats
+            await load();
         } catch (err) {
             setSimResult({ ok: false, error: err.message });
         } finally {
@@ -90,13 +123,11 @@ export default function Admin() {
         }
     }
 
-    // Compute loss ratio per city from payouts
     const cityPayouts = {};
     const cityPremiums = { chennai: 4900, mumbai: 5800, hyderabad: 3100, bengaluru: 2700 };
     payouts.filter(p => p.status === 'paid').forEach(p => {
         cityPayouts[p.city] = (cityPayouts[p.city] || 0) + p.amount;
     });
-
     const lossRatios = Object.entries(cityPremiums).map(([city, premiums]) => ({
         city,
         ratio: Math.round(((cityPayouts[city] || 0) / premiums) * 100),
@@ -113,9 +144,8 @@ export default function Admin() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 relative z-10 page-enter">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 relative z-10 page-enter">
 
-            {/* Header */}
             <div className="mb-6">
                 <div className="font-mono text-xs text-accent tracking-widest uppercase mb-2">
           // Insurer Intelligence Dashboard
@@ -124,25 +154,25 @@ export default function Admin() {
             </div>
 
             {/* Top stats */}
-            <div className="grid grid-cols-5 bg-surface2 border border-border rounded-xl overflow-hidden mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 bg-surface2 border border-border rounded-xl overflow-hidden mb-6">
                 <StatCard label="Total Workers" value={stats?.totalWorkers || 0} sub="registered" color="text-blue-400" />
                 <StatCard label="Active Policies" value={stats?.activePolicies || 0} sub="this week" color="text-white" />
-                <StatCard label="Premiums Collected" value={`₹${((stats?.totalPremiums || 0)).toLocaleString('en-IN')}`} sub="all time" color="text-accent" />
-                <StatCard label="Payouts Issued" value={`₹${((stats?.totalPayouts || 0)).toLocaleString('en-IN')}`} sub={`${stats?.payoutCount || 0} events`} color="text-green" />
-                <StatCard label="Fraud Prevented" value={`₹${((stats?.fraudPrevented || 0)).toLocaleString('en-IN')}`} sub="blocked by CLS" color="text-danger" />
+                <StatCard label="Premiums Collected" value={`₹${(stats?.totalPremiums || 0).toLocaleString('en-IN')}`} sub="all time" color="text-accent" />
+                <StatCard label="Payouts Issued" value={`₹${(stats?.totalPayouts || 0).toLocaleString('en-IN')}`} sub={`${stats?.payoutCount || 0} events`} color="text-green" />
+                <StatCard label="Fraud Prevented" value={`₹${(stats?.fraudPrevented || 0).toLocaleString('en-IN')}`} sub="blocked CLS" color="text-danger" />
             </div>
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Left col */}
-                <div className="col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-6">
 
-                    {/* ── Trigger Simulator ── */}
+                    {/* Trigger Simulator */}
                     <div className="cs-card cs-card-accent">
                         <div className="font-mono text-xs text-accent tracking-widest uppercase mb-4">
               // Trigger Simulator — Demo Mode
                         </div>
-                        <div className="flex gap-3 mb-4">
+                        <div className="flex flex-col sm:flex-row gap-3 mb-4">
                             <div className="flex-1">
                                 <label className="cs-label">City</label>
                                 <select className="cs-select" value={simCity} onChange={e => setSimCity(e.target.value)}>
@@ -163,7 +193,7 @@ export default function Admin() {
                             </div>
                             <div className="flex items-end">
                                 <button onClick={runSimulation} disabled={simming}
-                                    className="btn-primary w-auto px-6 py-3 whitespace-nowrap">
+                                    className="btn-primary w-full sm:w-auto px-6 py-3 whitespace-nowrap">
                                     {simming ? '⚡ Running...' : '⚡ Fire Trigger'}
                                 </button>
                             </div>
@@ -181,13 +211,12 @@ export default function Admin() {
                         )}
                     </div>
 
-                    {/* ── Payout Queue ── */}
+                    {/* Payout Queue */}
                     <div className="cs-card p-0 overflow-hidden">
                         <div className="px-5 py-4 border-b border-border flex justify-between items-center">
                             <div className="font-display font-bold">Payout Queue</div>
                             <div className="font-mono text-xs text-gray-500">{payouts.length} records</div>
                         </div>
-
                         {payouts.length === 0 ? (
                             <div className="py-12 text-center text-gray-500 text-sm">
                                 No payouts yet. Run a simulation above.
@@ -198,14 +227,12 @@ export default function Admin() {
                                     <div key={p.id}
                                         className="flex items-center gap-3 px-5 py-3.5 border-b border-border
                                last:border-0 hover:bg-surface2 transition-colors">
-                                        {/* Avatar */}
                                         <div className="w-8 h-8 rounded-lg bg-accent2/15 flex items-center
                                     justify-center font-display text-xs font-bold text-blue-400 flex-shrink-0">
                                             {(p.userId || '?').slice(0, 2).toUpperCase()}
                                         </div>
-
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-0.5">
+                                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                                 <span className="text-sm font-semibold">{p.triggerName || p.triggerType}</span>
                                                 <span className={`badge ${TIER_STYLE[p.clsTier]} text-xs`}>
                                                     CLS {p.clsTier} · {p.clsScore}
@@ -213,10 +240,9 @@ export default function Admin() {
                                             </div>
                                             <div className="font-mono text-xs text-gray-500">
                                                 {p.city?.toUpperCase()} · {new Date(p.createdAt).toLocaleString('en-IN')}
-                                                {p.simulated && <span className="ml-2 text-accent">· SIMULATED</span>}
+                                                {p.simulated && <span className="ml-2 text-accent">· SIM</span>}
                                             </div>
                                         </div>
-
                                         <div className="text-right flex-shrink-0 flex items-center gap-3">
                                             <div>
                                                 <div className={`font-mono text-sm font-bold
@@ -226,10 +252,9 @@ export default function Admin() {
                                                     ₹{p.amount}
                                                 </div>
                                                 <div className="font-mono text-xs text-gray-600 capitalize">
-                                                    {p.status?.replace('_', ' ')}
+                                                    {p.status?.replace(/_/g, ' ')}
                                                 </div>
                                             </div>
-
                                             {p.status === 'pending_verification' && (
                                                 <button onClick={() => releasePayout(p.id)}
                                                     className="font-mono text-xs px-3 py-1.5 rounded-lg
@@ -245,7 +270,7 @@ export default function Admin() {
                         )}
                     </div>
 
-                    {/* ── Recent Triggers ── */}
+                    {/* Trigger Event Log */}
                     <div className="cs-card p-0 overflow-hidden">
                         <div className="px-5 py-4 border-b border-border">
                             <div className="font-display font-bold">Trigger Event Log</div>
@@ -258,21 +283,20 @@ export default function Admin() {
                                     <div key={t.id}
                                         className="flex items-center gap-3 px-5 py-3 border-b border-border
                                last:border-0 font-mono text-xs">
-                                        <span className="text-lg">{t.icon || '⚡'}</span>
-                                        <div className="flex-1">
+                                        <span className="text-lg flex-shrink-0">{t.icon || '⚡'}</span>
+                                        <div className="flex-1 min-w-0">
                                             <span className="text-white font-bold">{t.name}</span>
                                             <span className="text-gray-500 ml-2">{t.city?.toUpperCase()}</span>
                                             {t.simulated && <span className="text-accent ml-2">[SIM]</span>}
                                         </div>
-                                        <div className="text-gray-500">
+                                        <div className="text-gray-500 flex-shrink-0">
                                             {new Date(t.firedAt || t.createdAt).toLocaleTimeString('en-IN')}
                                         </div>
-                                        <div className={`
-                      ${t.status === 'completed' ? 'text-green' : 'text-amber'}`}>
+                                        <div className={`flex-shrink-0 ${t.status === 'completed' ? 'text-green' : 'text-amber'}`}>
                                             {t.status}
                                         </div>
                                         {t.stats && (
-                                            <div className="text-gray-600">
+                                            <div className="text-gray-600 flex-shrink-0">
                                                 G:{t.stats.green} A:{t.stats.amber} R:{t.stats.red}
                                             </div>
                                         )}
@@ -281,7 +305,6 @@ export default function Admin() {
                             </div>
                         )}
                     </div>
-
                 </div>
 
                 {/* Right col */}
@@ -292,9 +315,7 @@ export default function Admin() {
                         <div className="font-mono text-xs text-gray-500 tracking-widest uppercase mb-4">
                             Loss Ratio by City
                         </div>
-                        {lossRatios.map(lr => (
-                            <LossRatioBar key={lr.city} city={lr.city} ratio={lr.ratio} />
-                        ))}
+                        {lossRatios.map(lr => <LossRatioBar key={lr.city} city={lr.city} ratio={lr.ratio} />)}
                         <div className="mt-4 pt-4 border-t border-border">
                             <div className="flex justify-between text-xs">
                                 <span className="text-gray-500">Target loss ratio</span>
@@ -303,15 +324,17 @@ export default function Admin() {
                             <div className="flex justify-between text-xs mt-1">
                                 <span className="text-gray-500">Overall</span>
                                 <span className={`font-mono font-bold
-                  ${lossRatios.reduce((s, l) => s + l.ratio, 0) / 4 > 75
-                                        ? 'text-danger' : 'text-green'}`}>
+                  ${lossRatios.reduce((s, l) => s + l.ratio, 0) / 4 > 75 ? 'text-danger' : 'text-green'}`}>
                                     {Math.round(lossRatios.reduce((s, l) => s + l.ratio, 0) / 4)}%
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Actuarial health */}
+                    {/* Predictive Risk */}
+                    <PredictiveRisk />
+
+                    {/* Pool Health */}
                     <div className="cs-card">
                         <div className="font-mono text-xs text-gray-500 tracking-widest uppercase mb-4">
                             Pool Health
@@ -334,7 +357,7 @@ export default function Admin() {
                         </div>
                     </div>
 
-                    {/* CLS breakdown */}
+                    {/* CLS Signal Weights */}
                     <div className="cs-card">
                         <div className="font-mono text-xs text-gray-500 tracking-widest uppercase mb-4">
                             CLS Signal Weights

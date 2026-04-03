@@ -34,7 +34,7 @@ const MOCK_EVENTS = [
 
 function timeAgo(date) {
   const seconds = Math.floor((Date.now() - date) / 1000);
-  if (seconds < 3600)  return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   return `${Math.floor(seconds / 86400)}d ago`;
 }
@@ -111,14 +111,14 @@ function PolicyStatusCard({ policy }) {
 
 function EventCard({ event }) {
   const statusColors = {
-    paid:    'text-green',
+    paid: 'text-green',
     pending: 'text-amber',
-    denied:  'text-danger',
+    denied: 'text-danger',
   };
   const tierBadge = {
     GREEN: 'badge-green',
     AMBER: 'badge-amber',
-    RED:   'badge-red',
+    RED: 'badge-red',
   };
 
   return (
@@ -194,7 +194,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8 relative z-10 page-enter">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative z-10 page-enter">
 
       {/* Header */}
       <div className="mb-8">
@@ -210,7 +210,7 @@ export default function Dashboard() {
       </div>
 
       {/* Top metric row */}
-      <div className="grid grid-cols-4 gap-px bg-border rounded-xl overflow-hidden mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden mb-6">
         {[
           { label: 'Wallet Balance', value: `₹${wallet.balance.toLocaleString('en-IN')}`, color: 'text-green' },
           { label: 'Coverage Active', value: policy ? policy.planName : 'None', color: policy ? 'text-white' : 'text-danger' },
@@ -224,10 +224,10 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Left — 2/3 width */}
-        <div className="col-span-2 space-y-6">
+        <div className="col-span-1 lg:col-span-2 space-y-6">
 
           {/* Policy card */}
           <PolicyStatusCard policy={policy} />

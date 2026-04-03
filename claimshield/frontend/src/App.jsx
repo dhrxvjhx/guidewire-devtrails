@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, OnboardingRoute } from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+import DisruptionAlert from './components/DisruptionAlert';
 
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
@@ -15,6 +16,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
+        <DisruptionAlert />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />

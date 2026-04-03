@@ -111,4 +111,30 @@ router.post('/release/:payoutId', requireAuth, async (req, res) => {
     }
 });
 
+// POST /api/payouts/appeal
+// Worker raises a dispute on a blocked payout
+router.post('/appeal', requireAuth, async (req, res) => {
+    const { payoutId, reason } = req.body;
+    if (!payoutId || !reason) {
+        return res.status(400).json({ error: 'payoutId and reason are required' });
+    }
+
+    try {
+        await db.collection('appeals').add({
+            userId: req.uid,
+            payoutId,
+            reason,
+            status: 'open',
+            createdAt: new Date().toISOString(),
+        });
+
+        return res.status(200).json({
+            message: 'Appeal submitted. Our team will review within 24 hours.',
+        });
+    } catch (err) {
+        console.error('[APPEAL] error:', err.message);
+        return res.status(500).json({ error: 'Failed to submit appeal' });
+    }
+});
+
 module.exports = router;
