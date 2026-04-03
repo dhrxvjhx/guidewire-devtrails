@@ -25,6 +25,7 @@ app.use('/api/policy', require('./routes/policy'));
 app.use('/api/premium', require('./routes/premium'));
 app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/payouts', require('./routes/payout'));
 
 // ── Health check ────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {

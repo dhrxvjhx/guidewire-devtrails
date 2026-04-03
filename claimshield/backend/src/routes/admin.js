@@ -76,24 +76,28 @@ router.post('/simulate-trigger', requireAuth, async (req, res) => {
 // GET /api/admin/stats — platform-wide stats for admin dashboard
 router.get('/stats', requireAuth, async (req, res) => {
     try {
-        const [usersSnap, policiesSnap, payoutsSnap, fraudSnap] = await Promise.all([
+        const [usersSnap, policiesSnap, payoutsSnap, fraudSnap, txSnap] = await Promise.all([
             db.collection('users').get(),
             db.collection('policies').where('status', '==', 'active').get(),
             db.collection('payouts').where('status', '==', 'paid').get(),
             db.collection('fraud_events').get(),
+            db.collection('transactions').where('category', '==', 'premium').where('status', '==', 'completed').get(),
         ]);
 
         const totalPaid = payoutsSnap.docs.reduce((s, d) => s + (d.data().amount || 0), 0);
         const fraudPrevented = fraudSnap.docs.reduce((s, d) => s + (d.data().amount || 0), 0);
+        const totalPremiums = txSnap.docs.reduce((s, d) => s + (d.data().amount || 0), 0);
 
         return res.status(200).json({
             totalWorkers: usersSnap.size,
             activePolicies: policiesSnap.size,
             totalPayouts: totalPaid,
+            totalPremiums,
             fraudPrevented,
             payoutCount: payoutsSnap.size,
         });
     } catch (err) {
+        console.error('[ADMIN] stats error:', err.message);
         return res.status(500).json({ error: err.message });
     }
 });

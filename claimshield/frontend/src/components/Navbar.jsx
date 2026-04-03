@@ -1,11 +1,11 @@
-// src/components/Navbar.jsx
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_LINKS = [
   { path: '/dashboard', label: 'Dashboard' },
-  { path: '/policy',    label: 'My Policy'  },
-  { path: '/wallet',    label: 'Wallet'     },
+  { path: '/policy', label: 'My Policy' },
+  { path: '/wallet', label: 'Wallet' },
+  { path: '/admin', label: 'Admin' },
 ];
 
 export default function Navbar() {
@@ -22,16 +22,14 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border"
-         style={{ background: 'rgba(6,10,16,0.92)', backdropFilter: 'blur(20px)' }}>
+      style={{ background: 'rgba(6,10,16,0.92)', backdropFilter: 'blur(20px)' }}>
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-14">
 
-        {/* Logo */}
         <Link to="/dashboard" className="font-mono text-sm tracking-widest">
           <span className="text-accent">Claim</span>
           <span className="text-gray-400">Shield</span>
         </Link>
 
-        {/* Nav links */}
         <div className="flex items-center gap-1">
           {NAV_LINKS.map(({ path, label }) => {
             const active = location.pathname === path;
@@ -47,7 +45,6 @@ export default function Navbar() {
           })}
         </div>
 
-        {/* Right side — worker info + logout */}
         <div className="flex items-center gap-4">
           {userProfile && (
             <div className="text-right hidden sm:block">
@@ -57,15 +54,13 @@ export default function Navbar() {
               </div>
             </div>
           )}
-
-          {/* Live indicator */}
           <div className="flex items-center gap-2">
             <div className="pulse-dot" />
             <span className="font-mono text-xs text-green">LIVE</span>
           </div>
-
           <button onClick={handleLogout}
-            className="font-mono text-xs text-gray-500 hover:text-white transition-colors px-3 py-1.5 rounded border border-border hover:border-gray-600">
+            className="font-mono text-xs text-gray-500 hover:text-white transition-colors
+                       px-3 py-1.5 rounded border border-border hover:border-gray-600">
             Sign out
           </button>
         </div>
