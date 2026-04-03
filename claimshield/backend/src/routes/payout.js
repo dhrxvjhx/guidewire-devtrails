@@ -6,7 +6,7 @@ const router = express.Router();
 const { db } = require('../firebase');
 const { requireAuth } = require('../middleware/auth');
 const { createPayout } = require('../services/razorpayService');
-const { creditWallet } = require('../services/payoutService');
+const payoutService = require('../services/payoutService');
 
 // GET /api/payouts/mine — worker's payout history
 router.get('/mine', requireAuth, async (req, res) => {
@@ -81,7 +81,7 @@ router.post('/release/:payoutId', requireAuth, async (req, res) => {
         });
 
         // Credit wallet
-        await creditWallet(payout.userId, payout.amount, {
+        await payoutService.creditWallet(payout.userId, payout.amount, {
             payoutId,
             triggerId: payout.triggerId,
             triggerName: payout.triggerName,
