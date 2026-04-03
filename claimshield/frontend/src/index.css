@@ -1,0 +1,162 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    background-color: #060a10;
+    color: #e8f0fe;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* Grid background — applied to root */
+  #root {
+    position: relative;
+    min-height: 100vh;
+  }
+
+  #root::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 229, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 229, 255, 0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+@layer components {
+  /* ── Inputs ─────────────────────────────────────────────── */
+  .cs-input {
+    @apply w-full bg-bg border border-border rounded-lg px-4 py-3
+           text-white font-mono text-sm outline-none
+           transition-colors duration-200
+           focus:border-accent placeholder-gray-600;
+  }
+
+  .cs-input:focus { border-color: #00e5ff; }
+
+  .cs-select {
+    @apply cs-input appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a7a9a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  .cs-label {
+    @apply block text-xs text-gray-400 font-mono tracking-widest uppercase mb-2;
+  }
+
+  /* ── Buttons ────────────────────────────────────────────── */
+  .btn-primary {
+    @apply w-full py-3 px-6 rounded-lg font-display font-bold text-sm
+           text-bg tracking-wide
+           transition-all duration-200
+           disabled:opacity-40 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, #0055ff, #00e5ff);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn-outline {
+    @apply w-full py-3 px-6 rounded-lg font-display font-bold text-sm
+           text-white border border-border
+           transition-all duration-200
+           hover:border-accent hover:text-accent;
+  }
+
+  .btn-ghost {
+    @apply py-2 px-4 rounded-lg text-sm text-gray-400
+           hover:text-white hover:bg-surface2
+           transition-all duration-200;
+  }
+
+  /* ── Cards ──────────────────────────────────────────────── */
+  .cs-card {
+    @apply bg-surface2 border border-border rounded-xl p-6
+           relative overflow-hidden;
+  }
+
+  .cs-card-accent::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #0055ff, #00e5ff);
+  }
+
+  /* ── Badges ─────────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+           text-xs font-mono font-bold tracking-wider;
+  }
+
+  .badge-green { @apply bg-green/10 text-green border border-green/25; }
+  .badge-amber { @apply bg-amber/10 text-amber border border-amber/25; }
+  .badge-red   { @apply bg-danger/10 text-danger border border-danger/25; }
+  .badge-blue  { @apply bg-accent2/10 text-blue-400 border border-accent2/25; }
+
+  /* ── Section heading ────────────────────────────────────── */
+  .section-tag {
+    @apply font-mono text-xs text-accent tracking-widest uppercase mb-3;
+  }
+
+  /* ── Error message ──────────────────────────────────────── */
+  .field-error {
+    @apply text-danger text-xs font-mono mt-1.5;
+  }
+
+  /* ── Divider ────────────────────────────────────────────── */
+  .cs-divider {
+    @apply border-t border-border my-6;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e2f45; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #243850; }
+
+/* Page fade-in */
+.page-enter { animation: pageIn 0.25s ease; }
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Pulse dot */
+.pulse-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #00e676;
+  animation: pulseDot 2s infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* Shimmer skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #0d1420 25%, #111c2e 50%, #0d1420 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

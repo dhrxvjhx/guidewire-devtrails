@@ -1,0 +1,39 @@
+1
+00:00:00,000 --> 00:00:05,000
+ClaimShield | Team Ctrl+Alt+Delete
+We don't trust GPS. We never did.
+
+2
+00:00:05,000 --> 00:00:10,000
+500 workers. One Telegram group. GPS-spoofing apps.
+They drained a liquidity pool to zero — from home.
+
+3
+00:00:10,000 --> 00:00:15,000
+Our answer: the Contextual Legitimacy Score (CLS).
+Six signals fused together — hard to fake simultaneously.
+
+4
+00:00:15,000 --> 00:00:20,000
+47 claims from the same pin in 10 minutes?
+That's not a storm. That's a Telegram notification.
+
+5
+00:00:20,000 --> 00:00:25,000
+🟢 Green → auto-approved, payout in 60s.
+🟡 Amber → hold + verify. 🔴 Red → freeze + review.
+
+6
+00:00:25,000 --> 00:00:30,000
+Claim → Weather API → CLS Engine → Population Monitor
+→ Tier Logic → Pay / Verify / Freeze.
+
+7
+00:00:30,000 --> 00:00:35,000
+React Native · Node.js · Kafka · Python/FastAPI · XGBoost
+Redis · PostgreSQL · Stripe · Firebase · S3
+
+8
+00:00:35,000 --> 00:00:40,000
+GPS spoofing defeats a single signal.
+ClaimShield fuses six. We're smarter.

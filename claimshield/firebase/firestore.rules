@@ -1,0 +1,40 @@
+// firebase/firestore.rules
+// Deploy with: firebase deploy --only firestore:rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users — can only read/write their own doc
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Policies — worker can read their own; backend writes via Admin SDK (bypasses rules)
+    match /policies/{policyId} {
+      allow read: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Transactions — worker can read their own
+    match /transactions/{txnId} {
+      allow read: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Triggers — read-only for authenticated users (public weather data)
+    match /triggers/{triggerId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Scheduler only
+    }
+
+    // Payouts — worker can read their own
+    match /payouts/{payoutId} {
+      allow read: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+      allow write: if false; // Payout engine only
+    }
+  }
+}
