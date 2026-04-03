@@ -49,20 +49,8 @@ async function processPayout(policy, trigger, clsResult, triggerId) {
         console.log(`[PAYOUT] ✓ GREEN ₹${payoutAmt} → ${policy.userId.slice(0, 8)}... (CLS: ${clsResult.score})`);
 
     } else if (clsResult.tier === 'AMBER') {
-        // Hold payout — create a pending transaction
-        await db.collection('transactions').add({
-            userId: policy.userId,
-            payoutId: payoutRef.id,
-            type: 'credit',
-            category: 'payout',
-            amount: payoutAmt,
-            reason: `${trigger.name} — pending verification`,
-            status: 'pending',
-            clsTier: 'AMBER',
-            clsScore: clsResult.score,
-            createdAt: now,
-        });
-
+        // Payout held — NO wallet credit, NO transaction yet.
+        // Transaction is written only when admin releases via /payouts/release/:id
         console.log(`[PAYOUT] ⚠ AMBER held ₹${payoutAmt} → ${policy.userId.slice(0, 8)}... (CLS: ${clsResult.score})`);
 
     } else {

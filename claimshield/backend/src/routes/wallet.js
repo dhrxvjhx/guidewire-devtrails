@@ -25,7 +25,10 @@ router.get('/transactions', requireAuth, async (req, res) => {
       .orderBy('createdAt', 'desc')
       .limit(limit)
       .get();
-    const transactions = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const transactions = snapshot.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(t => t.status !== 'pending');
     return res.status(200).json({ transactions });
   } catch (err) {
     if (err.code === 'NOT_CONFIGURED') return res.status(200).json({ transactions: [] });

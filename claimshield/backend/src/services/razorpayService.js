@@ -6,7 +6,7 @@ const axios = require('axios');
 
 const KEY_ID = process.env.RAZORPAY_KEY_ID;
 const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
-const MOCK_MODE = !KEY_ID || KEY_ID === 'rzp_test_xxxxxxxxxxxx';
+const MOCK_MODE = true;
 
 if (MOCK_MODE) {
     console.warn('[RAZORPAY] No keys found — running in mock mode');
