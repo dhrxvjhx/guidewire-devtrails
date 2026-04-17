@@ -1,59 +1,7 @@
 // src/services/premiumEngine.js
-//
-// THE ACTUARIAL BRAIN — This is what was missing from Phase 1.
-//
-// This engine takes a worker's profile and outputs:
-//   - Adjusted weekly premium (₹)
-//   - Coverage cap (₹ per event)
-//   - Risk band (LOW / MEDIUM / HIGH)
-//   - Risk score breakdown (for transparency to worker)
-//
-// Financial model:
-//   Base loss ratio target: 65%
-//   Premium pool (100 Standard workers): ₹4,900/week
-//   Max payout exposure: ₹3,185 (65% of pool)
-//   Trigger frequency (Chennai, monsoon): ~2.3 events/month
-//
-// ML note: In production this would be an XGBoost model trained on
-// 6 months of hyper-local weather + claim data. For the demo it uses
-// calibrated rule-based logic that produces the same shape of output.
+const { getPincodeRisk } = require('../data/pincodeRisk');
 
-// ─── Zone risk data ────────────────────────────────────────────────────────
-// Multipliers derived from historical flood/rain/heat frequency per city-zone.
-// Source: IMD district-level rainfall data + NDMA flood records (mocked).
-const ZONE_RISK = {
-  // Chennai zones
-  'chennai-north':  { multiplier: 1.35, label: 'Flood-prone', avgRainDays: 62 },
-  'chennai-south':  { multiplier: 1.20, label: 'Moderate risk', avgRainDays: 55 },
-  'chennai-central':{ multiplier: 1.10, label: 'Low-moderate', avgRainDays: 48 },
-  // Mumbai zones
-  'mumbai-west':    { multiplier: 1.40, label: 'High flood risk', avgRainDays: 71 },
-  'mumbai-east':    { multiplier: 1.25, label: 'Moderate flood', avgRainDays: 64 },
-  'mumbai-central': { multiplier: 1.15, label: 'Moderate', avgRainDays: 58 },
-  // Hyderabad zones
-  'hyderabad-north':{ multiplier: 1.30, label: 'Heat + rain risk', avgRainDays: 45 },
-  'hyderabad-south':{ multiplier: 1.20, label: 'Moderate', avgRainDays: 40 },
-  // Bengaluru zones
-  'bengaluru-north':{ multiplier: 0.95, label: 'Low risk', avgRainDays: 38 },
-  'bengaluru-south':{ multiplier: 0.85, label: 'Very low risk', avgRainDays: 32 },
-  // Default fallback
-  'default':        { multiplier: 1.00, label: 'Standard', avgRainDays: 45 },
-};
-
-// ─── Platform risk modifier ────────────────────────────────────────────────
-// Zepto/Blinkit workers do more night shifts → higher heat exposure in summer
-const PLATFORM_RISK = {
-  swiggy:   0.00,
-  zomato:   0.00,
-  zepto:    0.08,   // night shifts, more heat exposure
-  blinkit:  0.08,
-  amazon:   0.05,   // longer routes = more weather exposure
-  flipkart: 0.05,
-  dunzo:    0.03,
-  default:  0.00,
-};
-
-// ─── Plan definitions ──────────────────────────────────────────────────────
+// ── Plan definitions (unchanged) ──────────────────────────────────────────
 const PLANS = {
   basic: {
     name: 'Basic Shield',
@@ -78,34 +26,33 @@ const PLANS = {
   },
 };
 
-// ─── Earnings bracket adjustment ──────────────────────────────────────────
-// Workers with higher daily earnings get proportionally larger coverage
+// ── Platform risk modifier ────────────────────────────────────────────────
+const PLATFORM_RISK = {
+  swiggy: 0.00,
+  zomato: 0.00,
+  zepto: 0.08,
+  blinkit: 0.08,
+  amazon: 0.05,
+  flipkart: 0.05,
+  dunzo: 0.03,
+  default: 0.00,
+};
+
+// ── Earnings bracket ──────────────────────────────────────────────────────
 function getEarningsBracket(avgDailyEarnings) {
-  if (avgDailyEarnings < 500)  return { label: 'Entry',    coverageMultiplier: 0.75 };
-  if (avgDailyEarnings < 800)  return { label: 'Standard', coverageMultiplier: 1.00 };
-  if (avgDailyEarnings < 1200) return { label: 'Active',   coverageMultiplier: 1.25 };
-  return                               { label: 'Power',    coverageMultiplier: 1.50 };
+  if (avgDailyEarnings < 500) return { label: 'Entry', coverageMultiplier: 0.75 };
+  if (avgDailyEarnings < 800) return { label: 'Standard', coverageMultiplier: 1.00 };
+  if (avgDailyEarnings < 1200) return { label: 'Active', coverageMultiplier: 1.25 };
+  return { label: 'Power', coverageMultiplier: 1.50 };
 }
 
-// ─── Main premium calculation function ────────────────────────────────────
-/**
- * calculatePremium(workerProfile) → PremiumQuote
- *
- * workerProfile: {
- *   plan: 'basic' | 'standard' | 'pro'
- *   city: 'chennai' | 'mumbai' | 'hyderabad' | 'bengaluru'
- *   zone: 'north' | 'south' | 'central'          (sub-area of city)
- *   platform: 'swiggy' | 'zomato' | 'zepto' | ...
- *   avgDailyEarnings: number                      (₹ per day)
- *   hoursPerDay: number                           (avg working hours)
- *   experienceMonths: number                      (months on platform)
- * }
- */
+// ── Main premium calculation — now pincode-aware ──────────────────────────
 function calculatePremium(workerProfile) {
   const {
     plan = 'standard',
     city = 'chennai',
-    zone = 'central',
+    pincode,                        // NEW — primary risk input
+    zone = 'central',               // kept for backwards compat
     platform = 'swiggy',
     avgDailyEarnings = 900,
     hoursPerDay = 8,
@@ -113,120 +60,106 @@ function calculatePremium(workerProfile) {
   } = workerProfile;
 
   const planConfig = PLANS[plan] || PLANS.standard;
-  const zoneKey = `${city}-${zone}`;
-  const zoneData = ZONE_RISK[zoneKey] || ZONE_RISK.default;
-  const platformRisk = PLATFORM_RISK[platform.toLowerCase()] || PLATFORM_RISK.default;
+  const pincodeData = getPincodeRisk(pincode, city);
+  const platformRisk = PLATFORM_RISK[platform?.toLowerCase()] || PLATFORM_RISK.default;
   const earningsBracket = getEarningsBracket(avgDailyEarnings);
 
-  // ── Step 1: Compute raw risk score (0–100) ──────────────────────────────
-  // This is what an ML model would output. We compute it analytically here.
-  const zoneScore    = (zoneData.multiplier - 0.8) / 0.6 * 40;   // 0–40 pts
-  const platformScore = platformRisk * 100 * 0.15;                 // 0–15 pts
-  const earningsScore = Math.min((avgDailyEarnings / 1500) * 25, 25); // 0–25 pts
-  const hoursScore   = Math.min((hoursPerDay / 14) * 10, 10);      // 0–10 pts
-  const newbieScore  = experienceMonths < 3 ? 10 : 0;              // newbie flag
+  // ── Risk score (0–100) ───────────────────────────────────────────────────
+  // Now uses pincode-level multiplier instead of broad zone
+  const zoneScore = (pincodeData.riskMultiplier - 0.7) / 1.1 * 40;
+  const platformScore = platformRisk * 100 * 0.15;
+  const earningsScore = Math.min((avgDailyEarnings / 1500) * 25, 25);
+  const hoursScore = Math.min((hoursPerDay / 14) * 10, 10);
+  const newbieScore = experienceMonths < 3 ? 10 : 0;
+  // Drainage quality affects risk — poor drainage = higher risk
+  const drainageScore = (5 - pincodeData.drainageScore) * 3; // 0–12 pts
 
   const rawRiskScore = Math.round(
-    zoneScore + platformScore + earningsScore + hoursScore + newbieScore
+    zoneScore + platformScore + earningsScore + hoursScore + newbieScore + drainageScore
   );
 
-  // ── Step 2: Risk band ───────────────────────────────────────────────────
   let riskBand;
   if (rawRiskScore < 30) riskBand = 'LOW';
   else if (rawRiskScore < 60) riskBand = 'MEDIUM';
   else riskBand = 'HIGH';
 
-  // ── Step 3: Premium adjustment from base ───────────────────────────────
-  // Zone multiplier is the primary driver (actuarial)
-  // Platform risk adds a small surcharge
-  // Experience discount: veteran workers get up to ₹5 off
-  const zoneAdjust     = planConfig.basePremium * (zoneData.multiplier - 1.0);
+  // ── Premium adjustment ───────────────────────────────────────────────────
+  const zoneAdjust = planConfig.basePremium * (pincodeData.riskMultiplier - 1.0);
   const platformAdjust = planConfig.basePremium * platformRisk;
-  const expDiscount    = experienceMonths >= 12 ? -5 : experienceMonths >= 6 ? -3 : 0;
+  const expDiscount = experienceMonths >= 12 ? -5 : experienceMonths >= 6 ? -3 : 0;
 
   const adjustedPremium = Math.round(
     planConfig.basePremium + zoneAdjust + platformAdjust + expDiscount
   );
 
-  // Clamp: never more than ±₹12 from base (keeps it fair for workers)
   const clampedPremium = Math.max(
     planConfig.basePremium - 12,
-    Math.min(planConfig.basePremium + 12, adjustedPremium)
+    Math.min(planConfig.basePremium + 20, adjustedPremium) // raised cap for VERY_HIGH zones
   );
 
-  // ── Step 4: Coverage cap adjusted by earnings bracket ──────────────────
+  // ── Coverage cap ─────────────────────────────────────────────────────────
   const adjustedCoverage = Math.round(
     planConfig.coveragePerEvent * earningsBracket.coverageMultiplier
   );
 
-  // ── Step 5: Next billing date (next Sunday midnight) ───────────────────
+  // ── Next billing ─────────────────────────────────────────────────────────
   const now = new Date();
   const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
   const nextBilling = new Date(now);
   nextBilling.setDate(now.getDate() + daysUntilSunday);
   nextBilling.setHours(0, 0, 0, 0);
 
-  // ── Return full quote ───────────────────────────────────────────────────
   return {
     plan,
     planName: planConfig.name,
-
-    // Financial
     basePremium: planConfig.basePremium,
     adjustedPremium: clampedPremium,
     coveragePerEvent: adjustedCoverage,
     maxEventsPerWeek: planConfig.maxEventsPerWeek,
     maxWeeklyCoverage: adjustedCoverage * planConfig.maxEventsPerWeek,
-
-    // Risk profile
-    riskScore: rawRiskScore,
+    riskScore: Math.min(rawRiskScore, 100),
     riskBand,
     riskBreakdown: {
       zoneRisk: Math.round(zoneScore),
       platformRisk: Math.round(platformScore),
       earningsExposure: Math.round(earningsScore),
       hoursExposure: Math.round(hoursScore),
+      drainageRisk: Math.round(drainageScore),
       experienceFlag: newbieScore,
     },
 
-    // Zone info
-    zone: zoneKey,
-    zoneLabel: zoneData.label,
-    avgRainDaysPerYear: zoneData.avgRainDays,
+    // Pincode-level details (new)
+    pincode: pincode || 'unknown',
+    ward: pincodeData.ward,
+    floodRisk: pincodeData.floodRisk,
+    drainageScore: pincodeData.drainageScore,
+    avgRainDaysPerYear: pincodeData.avgRainDays,
+    knownHazards: pincodeData.knownHazards,
+    zone: pincodeData.ward, // ward name replaces zone label
 
-    // Coverage details
     earningsBracket: earningsBracket.label,
     triggers: planConfig.triggers,
     nextBillingDate: nextBilling.toISOString(),
 
-    // Actuarial summary (shown in admin dashboard)
     actuarial: {
       targetLossRatio: 0.65,
-      estimatedTriggerFrequencyPerMonth: estimateTriggerFrequency(city, plan),
-      breakEvenPremium: computeBreakEven(adjustedCoverage, city),
-      poolHealthy: clampedPremium >= computeBreakEven(adjustedCoverage, city) * 0.9,
+      estimatedTriggerFrequencyPerMonth: estimateTriggerFrequency(city, plan, pincodeData.floodRisk),
+      breakEvenPremium: computeBreakEven(adjustedCoverage, city, pincodeData.floodRisk),
+      poolHealthy: clampedPremium >= computeBreakEven(adjustedCoverage, city, pincodeData.floodRisk) * 0.9,
     },
   };
 }
 
-// ─── Helper: trigger frequency estimate by city ───────────────────────────
-function estimateTriggerFrequency(city, plan) {
-  const baseFreq = {
-    chennai:   2.3,   // monsoon + cyclone belt
-    mumbai:    2.1,
-    hyderabad: 1.6,
-    bengaluru: 1.0,
-  };
+function estimateTriggerFrequency(city, plan, floodRisk) {
+  const baseFreq = { chennai: 2.3, mumbai: 2.1, hyderabad: 1.6, bengaluru: 1.0 };
+  const riskMult = { LOW: 0.7, MEDIUM: 1.0, HIGH: 1.4, VERY_HIGH: 1.9 };
   const planMult = plan === 'pro' ? 1.4 : plan === 'standard' ? 1.0 : 0.6;
-  return ((baseFreq[city] || 1.5) * planMult).toFixed(1);
+  return (((baseFreq[city] || 1.5) * (riskMult[floodRisk] || 1.0) * planMult)).toFixed(1);
 }
 
-// ─── Helper: break-even premium calculation ───────────────────────────────
-function computeBreakEven(coveragePerEvent, city) {
-  const freq = parseFloat(estimateTriggerFrequency(city, 'standard'));
-  // freq events/month × coverage × 65% loss ratio / 4 weeks
+function computeBreakEven(coveragePerEvent, city, floodRisk) {
+  const freq = parseFloat(estimateTriggerFrequency(city, 'standard', floodRisk));
   return Math.round((freq * coveragePerEvent * 0.65) / 4);
 }
 
-// ─── Export ───────────────────────────────────────────────────────────────
-module.exports = { calculatePremium, PLANS, ZONE_RISK };
+module.exports = { calculatePremium, PLANS };

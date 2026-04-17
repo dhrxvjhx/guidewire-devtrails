@@ -33,7 +33,8 @@ router.get('/calculate', requireAuth, async (req, res) => {
 
     // Also return all 3 plan quotes for comparison
     const allPlans = ['basic', 'standard', 'pro'].map(p =>
-      calculatePremium({ plan: p, city, zone, platform,
+      calculatePremium({
+        plan: p, city, zone, platform,
         avgDailyEarnings: Number(avgDailyEarnings),
         hoursPerDay: Number(hoursPerDay),
         experienceMonths: Number(experienceMonths),
@@ -68,6 +69,18 @@ router.get('/zones', (req, res) => {
 // GET /api/premium/plans — return plan definitions
 router.get('/plans', (req, res) => {
   return res.status(200).json({ plans: PLANS });
+});
+
+const { getPincodesByCity, getRiskLabel } = require('../data/pincodeRisk');
+
+// GET /api/premium/pincodes?city=chennai
+// Returns all pincodes for a city with risk profiles — used in onboarding dropdown
+router.get('/pincodes', (req, res) => {
+  const { city } = req.query;
+  if (!city) return res.status(400).json({ error: 'city is required' });
+
+  const pincodes = getPincodesByCity(city);
+  return res.status(200).json({ pincodes });
 });
 
 module.exports = router;

@@ -52,6 +52,7 @@ export const premiumApi = {
   calculate: (params) => api.get('/premium/calculate', { params }),
   zones: (city) => api.get('/premium/zones', { params: { city } }),
   plans: () => api.get('/premium/plans'),
+  pincodes: (city) => api.get('/premium/pincodes', { params: { city } }),
 };
 
 // ── Wallet ──────────────────────────────────────────────────────────────────
