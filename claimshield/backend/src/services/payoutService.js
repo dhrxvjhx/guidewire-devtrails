@@ -26,6 +26,9 @@ async function processPayout(policy, trigger, clsResult, triggerId) {
             : clsResult.tier === 'AMBER' ? 'pending_verification'
                 : 'blocked',
         createdAt: now,
+        mobilityEligible: policy.mobilityEligible || false,
+        detectedPincode: policy.detectedPincode || null,
+        detectedWard: policy.detectedWard || null,
     };
 
     const payoutRef = await db.collection('payouts').add(payoutData);

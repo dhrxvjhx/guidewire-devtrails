@@ -96,17 +96,72 @@ async function completeTriggerEvent(triggerId, stats) {
     });
 }
 
-// ── Get active policies in a city eligible for a trigger ──────────────────
-async function getEligiblePolicies(city, eligiblePlans) {
+// ── Get eligible policies — includes mobile workers ────────────────────────
+// A worker is eligible if:
+//   1. Their registered city matches the trigger city (original logic)
+//   OR
+//   2. Their last known GPS location was in the trigger city within 4 hours
+async function getEligiblePolicies(city, eligiblePlans, triggerPincode) {
+    // All active policies in the triggered city (registered)
     const snapshot = await db.collection('policies')
         .where('city', '==', city)
         .where('status', '==', 'active')
         .get();
 
-    return snapshot.docs
+    const registeredWorkers = snapshot.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(p => eligiblePlans.includes(p.plan))
-        .filter(p => p.eventsThisWeek < p.maxEventsPerWeek); // weekly cap
+        .filter(p => (p.eventsThisWeek || 0) < p.maxEventsPerWeek);
+
+    // Also check workers from OTHER cities whose GPS puts them in this city
+    const allPoliciesSnap = await db.collection('policies')
+        .where('status', '==', 'active')
+        .get();
+
+    const fourHoursAgo = new Date(Date.now() - 4 * 3600000).toISOString();
+
+    const mobileWorkers = [];
+    const registeredIds = new Set(registeredWorkers.map(p => p.userId));
+
+    for (const doc of allPoliciesSnap.docs) {
+        const policy = { id: doc.id, ...doc.data() };
+
+        // Skip if already in registered list or wrong city
+        if (registeredIds.has(policy.userId)) continue;
+        if (!eligiblePlans.includes(policy.plan)) continue;
+        if ((policy.eventsThisWeek || 0) >= policy.maxEventsPerWeek) continue;
+
+        // Check this worker's last known GPS location
+        try {
+            const userDoc = await db.collection('users').doc(policy.userId).get();
+            const user = userDoc.data() || {};
+
+            // Worker must have been in the triggered city within last 4 hours
+            if (
+                user.lastKnownPincode &&
+                user.lastLocationAt > fourHoursAgo &&
+                user.lastKnownPincode.startsWith(city === 'chennai' ? '6000'
+                    : city === 'mumbai' ? '400'
+                        : city === 'hyderabad' ? '500'
+                            : '560')
+            ) {
+                mobileWorkers.push({
+                    ...policy,
+                    mobilityEligible: true,
+                    detectedPincode: user.lastKnownPincode,
+                    detectedWard: user.lastKnownWard,
+                });
+                console.log(`[TRIGGER] Mobile worker detected — ${policy.userId.slice(0, 8)} in ${user.lastKnownWard} (registered: ${policy.city})`);
+            }
+        } catch {
+            // Skip if user doc fetch fails
+        }
+    }
+
+    const allEligible = [...registeredWorkers, ...mobileWorkers];
+    console.log(`[TRIGGER] ${registeredWorkers.length} registered + ${mobileWorkers.length} mobile workers eligible`);
+
+    return allEligible;
 }
 
 // ── Simulate a trigger for demo/testing purposes ───────────────────────────

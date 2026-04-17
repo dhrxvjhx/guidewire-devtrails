@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import LocationBadge from './LocationBadge';
 
 const NAV_LINKS = [
   { path: '/dashboard', label: 'Dashboard' },
@@ -54,13 +55,17 @@ export default function Navbar() {
               </div>
             </div>
           )}
+
+          {/* Current location zone — mobility tracking */}
+          <LocationBadge />
+
           <div className="flex items-center gap-2">
             <div className="pulse-dot" />
             <span className="font-mono text-xs text-green">LIVE</span>
           </div>
           <button onClick={handleLogout}
             className="font-mono text-xs text-gray-500 hover:text-white transition-colors
-                       px-3 py-1.5 rounded border border-border hover:border-gray-600">
+               px-3 py-1.5 rounded border border-border hover:border-gray-600">
             Sign out
           </button>
         </div>
