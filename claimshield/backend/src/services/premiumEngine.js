@@ -133,7 +133,7 @@ function calculatePremium(workerProfile) {
     ward: pincodeData.ward,
     floodRisk: pincodeData.floodRisk,
     drainageScore: pincodeData.drainageScore,
-    avgRainDaysPerYear: pincodeData.avgRainDays,
+    avgRainDaysPerYear: pincodeData.avgRainDays || 45,
     knownHazards: pincodeData.knownHazards,
     zone: pincodeData.ward, // ward name replaces zone label
 

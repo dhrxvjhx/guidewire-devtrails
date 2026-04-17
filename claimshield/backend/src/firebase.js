@@ -2,7 +2,7 @@
 const admin = require('firebase-admin');
 
 const REQUIRED = ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY'];
-const missing  = REQUIRED.filter(k => !process.env[k]);
+const missing = REQUIRED.filter(k => !process.env[k]);
 
 if (missing.length > 0) {
   console.error('\n🔴 [FIREBASE] Missing environment variables:');
@@ -15,9 +15,9 @@ if (!admin.apps.length) {
   if (missing.length === 0) {
     admin.initializeApp({
       credential: admin.credential.cert({
-        projectId:   process.env.FIREBASE_PROJECT_ID,
+        projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       }),
     });
     console.log('[FIREBASE] Admin SDK initialised ✓');
@@ -29,7 +29,8 @@ if (!admin.apps.length) {
 let db, auth;
 
 if (admin.apps.length && missing.length === 0) {
-  db   = admin.firestore();
+  db = admin.firestore();
+  db.settings({ ignoreUndefinedProperties: true });
   auth = admin.auth();
 } else {
   const notConfigured = () => new Proxy({}, {
@@ -40,7 +41,7 @@ if (admin.apps.length && missing.length === 0) {
       )
     ),
   });
-  db   = notConfigured();
+  db = notConfigured();
   auth = notConfigured();
 }
 
