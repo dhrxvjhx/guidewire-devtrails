@@ -2,7 +2,7 @@
 
 > *Swiggy and Zomato workers lose 20–30% of monthly income when rain, heat, or floods hit. They have no safety net. ClaimShield fixes that — automatically.*
 
-**Team:** Ctrl+Alt+Delete | **DEVTrails 2026 — Phase 2: Automation & Protection**
+**Team:** Ctrl+Alt+Delete | **DEVTrails 2026 — Phase 3: Scale & Optimise**
 
 ---
 
@@ -21,7 +21,7 @@ ClaimShield is a **parametric insurance platform** — payouts are triggered aut
 **How it works in 3 steps:**
 1. Ravi pays **₹49/week** — deducted automatically every Sunday
 2. Our system **monitors Chennai's weather, NDMA alerts, and Swiggy's uptime** every 5 minutes
-3. When rainfall exceeds 45mm/hr, **₹300 lands in Ravi's wallet instantly** — no app to open, no claim to file, no adjuster to call
+3. When rainfall exceeds 45mm/hr, **₹450 lands in Ravi's wallet instantly** — no app to open, no claim to file, no adjuster to call
 
 ---
 
@@ -45,13 +45,12 @@ ClaimShield is a **parametric insurance platform** — payouts are triggered aut
 | Standard | ₹49 | ₹300/event | 2 |
 | Pro | ₹79 | ₹600/event | 3 |
 
-**ML-ready dynamic pricing:** Base premium is adjusted ±₹8/week using hyper-local risk factors:
-- Zone flood history (last 6 months)
-- Avg monthly rain days in the worker's operating zone
-- Platform (Swiggy/Zomato/Zepto) shift pattern risk
+**ML-ready dynamic pricing:** Base premium is adjusted ±₹15/week using hyper-local risk factors:
+- Pincode-level flood history (NDMA vulnerability data)
+- Drainage quality score (1–5, municipal data)
+- Avg annual rainfall days in the worker's pincode
+- Platform shift pattern risk (Zepto/Blinkit night shifts = higher exposure)
 - Worker experience (loyalty discount for 6+ month veterans)
-
-Current implementation uses a rule-based model with the same input/output shape as a trained ML model — designed to be swapped for XGBoost or similar with no API changes.
 
 **Actuarial basis:**
 - Target loss ratio: 65% (industry standard for micro-insurance)
@@ -77,15 +76,13 @@ All thresholds checked every 5 minutes by automated scheduler. **No manual claim
 
 ## AI / ML Integration
 
-1. **Dynamic Premium Engine** — Rule-based actuarial model adjusting weekly premium based on zone risk score, historical claim frequency, and worker profile. ML-ready: same interface, pluggable model.
+1. **ML Premium Engine v2** — 8-feature weighted ensemble: zone flood risk, drainage quality, rainfall days, earnings exposure, platform shift risk, experience factor, vehicle type, temporal risk. Risk score 0–100 → premium adjustment ±₹15. XGBoost-ready interface — replace the prediction function with a trained model and nothing else changes. Full model introspection at `/api/premium/model-info`.
 2. **CLS Fraud Detection** — 6-signal Contextual Legitimacy Score runs on every payout. Signals: account age, policy tenure, claim frequency, geographic consistency, temporal pattern, population clustering. GREEN (≥60) → instant pay. AMBER (35–59) → admin review. RED (<35) → blocked + appeal path.
-3. **Predictive Risk Dashboard** — Admin view shows 48-hour weather forecast per city with estimated payout exposure for next week.
+3. **Predictive Risk Dashboard** — Admin view shows 48-hour weather forecast per city with estimated payout exposure, helping the insurer manage reserves proactively.
 
 ---
 
 ## Phase 2 Deliverables
-
-Everything below is built and running:
 
 | Deliverable | Status | Where to see it |
 |-------------|--------|-----------------|
@@ -104,30 +101,40 @@ Everything below is built and running:
 
 ---
 
+## Phase 3 Deliverables
+
+| Deliverable | Status | Details |
+|-------------|--------|---------|
+| Pincode/ward level zones | ✅ Complete | 30+ pincodes with NDMA flood risk profiles |
+| Worker mobility (GPS) | ✅ Complete | Coverage follows worker across zones via browser GPS |
+| ML premium model v2 | ✅ Complete | 8-feature model with introspection endpoint |
+| Hyper-local risk pricing | ✅ Complete | Velachery 1.75x vs Anna Nagar 0.90x multiplier |
+| Predictive risk widget | ✅ Complete | 48h forecast + city-level payout exposure |
+| Mobile responsive | ✅ Complete | Dashboard, onboarding, wallet optimised for mobile |
+
+---
+
 ## System Flow
 
 ```
 Sunday midnight
   → Premium deducted from all active policies
-  
-Every 5 minutes:
-→ Fetch live weather (OpenWeatherMap) for Chennai, Mumbai, Hyderabad, Bengaluru
-→ Evaluate 5 trigger thresholds
-→ If trigger fires:
-→ Query all active policies in affected city
-→ Run CLS fraud check (6 signals, 0–100 score)
-→ GREEN (≥60) → instant payout via Razorpay mock → wallet credited
-→ AMBER (35–59) → held, admin releases after review
-→ RED (<35) → blocked, fraud logged, appeal path open
-→ Worker sees in-app notification: "₹300 credited — Heavy Rainfall detected"
-→ All events logged to admin dashboard
 
-**AMBER verification note:** In Phase 2, AMBER payouts are reviewed and released via the admin dashboard. Worker-facing selfie/video verification prompt is scoped for Phase 3.
+Every 5 minutes:
+  → Fetch live weather (OpenWeatherMap) for Chennai, Mumbai, Hyderabad, Bengaluru
+  → Evaluate 5 trigger thresholds
+  → If trigger fires:
+      → Query registered workers in city
+      → Query mobile workers (GPS in triggered zone within last 4 hours)
+      → Run CLS fraud check on all eligible workers (6 signals, 0–100 score)
+      → GREEN (≥60) → instant payout via Razorpay mock → wallet credited
+      → AMBER (35–59) → held, admin releases after review
+      → RED (<35) → blocked, fraud logged, appeal path open
+      → Worker sees real-time in-app notification: "₹450 credited — Heavy Rainfall detected"
+      → All events logged to admin dashboard
 ```
 
----
-
-**AMBER verification note:** In Phase 2, AMBER payouts are reviewed and released via the admin dashboard. Worker-facing selfie/video verification prompt is scoped for Phase 3.
+**AMBER verification note:** AMBER payouts are reviewed and released via the admin dashboard. Worker-facing selfie/video verification is scoped for Phase 4.
 
 ---
 
@@ -142,11 +149,24 @@ Every 5 minutes:
 | Scheduler | node-cron (every 5 min) |
 | Weather API | OpenWeatherMap (live) |
 | Payments | Razorpay mock (sandbox-shaped response with UTR) |
-| Fraud Engine | Rule-based CLS (6 signals, ML-ready interface) |
+| Fraud Engine | CLS — 6-signal scoring engine |
+| ML Model | 8-feature weighted ensemble (XGBoost-ready) |
+| Hosting | Render (backend) + Vercel (frontend) |
+
+---
+
+## Live Demo
+
+- **App:** https://guidewire-devtrails-zeta.vercel.app/
+- **Backend Health:** https://claimshield-backend-me6v.onrender.com/health
+- **ML Model Info:** https://claimshield-backend-me6v.onrender.com/api/premium/model-info
+- **Demo credentials:** ravi@claimshield.in / demo1234
+- **To simulate a trigger:** Go to `/admin` → select city + trigger type → click ⚡ Fire Trigger
 
 ---
 
 ## Running Locally
+
 ```bash
 # Backend
 cd claimshield/backend
@@ -161,11 +181,6 @@ npm install
 npm run dev                 # starts on :5173
 ```
 
-**Demo credentials:** demo@claimshield.in / demo1234
-
-**To simulate a trigger (no rain needed):**
-Go to `/admin` → select city + trigger type → click ⚡ Fire Trigger
-
 ---
 
 ## Key Design Decisions
@@ -173,5 +188,14 @@ Go to `/admin` → select city + trigger type → click ⚡ Fire Trigger
 - **Web platform:** Onboarding and admin are desktop-first. Dashboard and wallet are mobile-responsive for workers checking payouts on their phones.
 - **Weekly billing:** Matches gig worker income cycle. Paid weekly → insured weekly.
 - **Parametric over indemnity:** No loss assessment, no adjuster, no delay. Event happens → payout happens.
+- **Pincode-level pricing:** Velachery (600029) carries 1.75x flood risk multiplier based on 2015 Chennai flood data. Anna Nagar (600040) carries 0.90x. Same city, different risk, different price.
+- **Worker mobility:** Coverage follows GPS, not registration address. A worker in Velachery during a flood alert gets paid regardless of where they registered.
 - **CLS as invisible backstop:** Fraud check runs silently. 95%+ of honest workers never know it's there — they just get paid.
 - **Circuit breaker:** Pool drain protection. If a cycle exceeds ₹5 lakh in payouts, auto-freeze triggers before the pool is drained.
+
+---
+
+## Pitch Deck
+
+[View Pitch Deck](https://github.com/dhrxvjhx/guidewire-devtrails/raw/master/assets/ClaimShield_DEVTrails2026.pptx)
+
