@@ -14,7 +14,7 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../firebase');
 const { requireAuth } = require('../middleware/auth');
-const { calculatePremium } = require('../services/premiumEngine');
+const { calculatePremium } = require('../services/mlPremiumModel');
 
 // ─── POST /api/auth/register ─────────────────────────────────────────────
 // Called right after Firebase creates the user account.
